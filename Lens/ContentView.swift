@@ -1,88 +1,80 @@
-//
-//  ContentView.swift
-//  Lens
-//
-//  Created by Bruce Li on 4/27/25.
-//
-
 import SwiftUI
-import CoreData
+import PhotosUI
 
 struct ContentView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
-        animation: .default)
-    private var items: FetchedResults<Item>
+    @State private var selectedItem: PhotosPickerItem?
+    @State private var selectedImage: Image?
+    @State private var newWindow: NSWindow?
 
     var body: some View {
-        NavigationView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp!, formatter: itemFormatter)")
-                    } label: {
-                        Text(item.timestamp!, formatter: itemFormatter)
+        VStack {
+            if let selectedImage {
+                selectedImage
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 300, height: 300)
+            }
+            Text("Welcome To Lens").padding(.top).bold()
+            PhotosPicker("Open Image", selection: $selectedItem, matching: .images)
+                .padding(.bottom)
+        }
+        .onChange(of: selectedItem) { newItem in
+            Task {
+                if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                    #if os(macOS)
+                    if let nsImage = NSImage(data: data) {
+                        selectedImage = Image(nsImage: nsImage)
+                        openNewWindow(with: nsImage)
                     }
-                }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-#if os(iOS)
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-#endif
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                    #endif
+                    #if os(iOS) || os(tvOS) || targetEnvironment(macCatalyst)
+                    if let uiImage = UIImage(data: data) {
+                        selectedImage = Image(uiImage: uiImage)
+                        EditorView(image: Image(nsImage: image))
                     }
+                    #endif
                 }
             }
-            Text("Select an item")
         }
     }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
+    
+    #if os(macOS)
+    func closeOriginalWindow() {
+        if let window = NSApplication.shared.keyWindow {
+            window.close()
         }
     }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            offsets.map { items[$0] }.forEach(viewContext.delete)
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
-        }
+    func openNewWindow(with image: NSImage) {
+        closeOriginalWindow()
+        let screenFrame = NSScreen.main?.frame ?? NSMakeRect(0, 0, 1440, 900)
+        
+        let newWindow = NSWindow(
+            contentRect: screenFrame,
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        newWindow.title = "Lens Editor"
+        
+        let newWindowView = EditorView(image: Image(nsImage: image))
+        
+        newWindow.contentView = NSHostingView(rootView: newWindowView)
+        newWindow.makeKeyAndOrderFront(nil)
+        
+        self.newWindow = newWindow
     }
+    #endif
 }
 
-private let itemFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .short
-    formatter.timeStyle = .medium
-    return formatter
-}()
-
-#Preview {
-    ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+struct EditorView: View {
+    var image: Image
+    
+    var body: some View {
+        VStack {
+            image
+                .resizable()
+                .scaledToFit()
+        }
+        .padding()
+    }
 }
