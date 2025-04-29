@@ -5,6 +5,7 @@ struct ContentView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: Image?
     @State private var newWindow: NSWindow?
+    
 
     var body: some View {
         VStack {
@@ -21,29 +22,24 @@ struct ContentView: View {
         .onChange(of: selectedItem) { newItem in
             Task {
                 if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                    #if os(macOS)
+
                     if let nsImage = NSImage(data: data) {
                         selectedImage = Image(nsImage: nsImage)
                         openNewWindow(with: nsImage)
                     }
-                    #endif
-                    #if os(iOS) || os(tvOS) || targetEnvironment(macCatalyst)
-                    if let uiImage = UIImage(data: data) {
-                        selectedImage = Image(uiImage: uiImage)
-                        EditorView(image: Image(nsImage: image))
-                    }
-                    #endif
+
                 }
             }
         }
+
     }
     
-    #if os(macOS)
     func closeOriginalWindow() {
         if let window = NSApplication.shared.keyWindow {
             window.close()
         }
     }
+    
     func openNewWindow(with image: NSImage) {
         closeOriginalWindow()
         let screenFrame = NSScreen.main?.frame ?? NSMakeRect(0, 0, 1440, 900)
@@ -63,7 +59,6 @@ struct ContentView: View {
         
         self.newWindow = newWindow
     }
-    #endif
 }
 
 struct EditorView: View {
@@ -71,10 +66,17 @@ struct EditorView: View {
     
     var body: some View {
         VStack {
+            Button("Exposure") {
+                // Placeholder for future feature
+            }
             image
                 .resizable()
                 .scaledToFit()
         }
         .padding()
     }
+}
+
+#Preview {
+    EditorView(image: Image("IMG_0129"))
 }
