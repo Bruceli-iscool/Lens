@@ -23,6 +23,9 @@ dependencies {
 
     // This dependency is used by the application.
     implementation libs.guava
+    // Important! For reading RAW Files from camera
+    implementation 'org.rawdarkroom:jrawio:1.7-ALPHA-2'
+
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
