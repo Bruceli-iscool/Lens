@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class photoLibrary {
-    ArrayList<String> photos = new ArrayList<>();
+    ArrayList<String> photos;
     String catalogPath = "";
 
     protected photoLibrary(boolean firstInCurrentSession) throws InterruptedException, IOException {
@@ -75,6 +75,7 @@ public class photoLibrary {
         if (result == JFileChooser.APPROVE_OPTION) {
             File selectedFile = f.getSelectedFile();
             catalogPath = selectedFile.getPath();
+            photos = new ArrayList<>();
             read(selectedFile);
             render();
         }
@@ -90,18 +91,30 @@ public class photoLibrary {
     protected void render() {
         SwingUtilities.invokeLater(() -> {
             JFrame library = new JFrame("Lens v1.1: " + catalogPath);
-            library.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            library.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             library.setSize(1600, 900);
             library.setLocationRelativeTo(null);
             JPanel panel = new JPanel(new GridLayout(0, 4, 10, 10));
             panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
             // toolbar to add photos
             JToolBar c = new JToolBar();
-            JButton newCatalog = new JButton("New Catalog");
-            newCatalog.addActionListener(new ActionListener() {
+            JButton newc = new JButton("New Catalog");
+            JButton newb = new JButton("Open Catalog");
+            newc.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    newCatalog();
+                    newCatalog(library);
+                }
+            });
+            // open catalog
+            newb.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    try {
+                        openCatalog(library);
+                    } catch (FileNotFoundException e1) {
+                        e1.printStackTrace();
+                    }
                 }
             });
             JButton addPhoto = new JButton("Add Photo");
@@ -124,14 +137,14 @@ public class photoLibrary {
                     System.out.println(photos);
                 }
             });
+            c.add(newc);
+            c.add(newb);
             c.add(addPhoto);
-            // todo fix bugs
             library.add(c, BorderLayout.NORTH);
             for (String path : photos) {
                 ImageIcon icon = new ImageIcon(path);
                 Image scaled = icon.getImage()
                         .getScaledInstance(300, -1, Image.SCALE_SMOOTH);
-
                 JButton button = new JButton(new ImageIcon(scaled));
                 button.setBorder(null);
                 button.setContentAreaFilled(false);
@@ -195,8 +208,23 @@ public class photoLibrary {
             e.printStackTrace();
         }
     }
-    protected void newCatalog() {
-        // todo
+    protected void newCatalog(JFrame parent) {
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Lens Catalog (*.lcatalog)","lcatalog");
+        JFileChooser f = new JFileChooser();
+        f.addChoosableFileFilter(filter);
+        if (f.showSaveDialog(parent) == JFileChooser.APPROVE_OPTION) {
+            File file = f.getSelectedFile();
+            try {
+                file.createNewFile();
+                catalogPath = file.getAbsolutePath();
+                rewrite();
+                // reset for new catalog
+                photos = new ArrayList<>();
+                render();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
 
