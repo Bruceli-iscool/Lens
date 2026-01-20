@@ -134,7 +134,6 @@ public class photoLibrary {
                         render();
                     }
                     rewrite();
-                    System.out.println(photos);
                 }
             });
             c.add(newc);
@@ -193,7 +192,7 @@ public class photoLibrary {
             scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
             library.add(scrollPane);
             library.setVisible(true);
-            // todo add star ratings and the ability to add photos
+            // todo add star ratings 
         });
     }
     private void rewrite() {
