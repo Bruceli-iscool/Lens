@@ -90,7 +90,7 @@ public class photoLibrary {
 
     protected void render() {
         SwingUtilities.invokeLater(() -> {
-            JFrame library = new JFrame("Lens v1.1: " + catalogPath);
+            core library = new core("Lens v1.1: " + catalogPath);
             library.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             library.setSize(1600, 900);
             library.setLocationRelativeTo(null);
