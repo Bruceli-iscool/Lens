@@ -2,8 +2,6 @@ package dev.desktop;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.plaf.BorderUIResource;
-
 import java.awt.*;
 import java.io.File;
 import java.awt.event.*;
@@ -48,7 +46,7 @@ public class photoLibrary {
         newCatalog.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-
+                newCatalog(home);
             }
         });
         openCatalog.addActionListener(new ActionListener() {
@@ -61,7 +59,11 @@ public class photoLibrary {
                 }
             }
         });
-        home.add(openCatalog);
+        JToolBar open = new JToolBar();
+        open.add(newCatalog);
+        open.add(openCatalog);
+        home.add(open, BorderLayout.NORTH);
+        home.pack();
         home.setVisible(true);
     }
 
