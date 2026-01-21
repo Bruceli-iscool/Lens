@@ -10,9 +10,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.function.Function;
+import java.net.URL;
+
 
 public class photoLibrary {
-    ArrayList<String> photos;
+    public ArrayList<String> photos;
     String catalogPath = "";
 
     protected photoLibrary(boolean firstInCurrentSession) throws InterruptedException, IOException {
@@ -26,7 +29,7 @@ public class photoLibrary {
         // splashScreen
         JFrame splash = new JFrame("Lens");
         splash.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        ImageIcon image = new ImageIcon(photoLibrary.class.getResource("/splashScreen1.png"));
+        ImageIcon image = new ImageIcon(photoLibrary.class.getResource("/splashScreen2.png"));
         splash.add(new JLabel(image));
         splash.pack();
         splash.setResizable(false);
@@ -102,6 +105,53 @@ public class photoLibrary {
             JToolBar c = new JToolBar();
             JButton newc = new JButton("New Catalog");
             JButton newb = new JButton("Open Catalog");
+            JButton extensions = new JButton("Execute Extension");
+            extensions.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    int result = JOptionPane.showConfirmDialog(null, "Extensions may cause harm to your computer.\nOnly execute trusted extensions, are you sure you want to proceed?", "Alert!", JOptionPane.YES_NO_OPTION);
+                    if (result == 0) {
+                        try {
+                            URL extensionsUrl = photoLibrary.class.getResource("/extensions/");
+                            if (extensionsUrl != null) {
+                                File extensionsDir = new File(extensionsUrl.toURI());
+                                File[] classFiles = extensionsDir.listFiles((dir, name) -> name.endsWith(".class"));
+                                if (classFiles != null) {
+                                    ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                                    java.util.List<String> extensionNames = new java.util.ArrayList<>();
+                                    java.util.Map<String, Class<?>> extensionClasses = new java.util.HashMap<>();
+                                    for (File classFile : classFiles) {
+                                        String fileName = classFile.getName();
+                                        String className = "extensions." + fileName.substring(0, fileName.length() - 6);
+                                        try {
+                                            Class<?> cls = cl.loadClass(className);
+                                            if (LensExtension.class.isAssignableFrom(cls)) {
+                                                extensionNames.add(className);
+                                                extensionClasses.put(className, cls);
+                                            }
+                                        } catch (Exception ex) {
+                                            ex.printStackTrace();
+                                        }
+                                    }
+                                    if (!extensionNames.isEmpty()) {
+                                        Object selected = JOptionPane.showInputDialog(null, "Select an extension to execute:", "Alert", JOptionPane.QUESTION_MESSAGE, null, extensionNames.toArray(), extensionNames.get(0));
+                                        if (selected != null) {
+                                            String selectedClassName = (String) selected;
+                                            Class<?> cls = extensionClasses.get(selectedClassName);
+                                            LensExtension ext = (LensExtension) cls.getDeclaredConstructor().newInstance();
+                                            ext.run(photoLibrary.this);
+                                        }
+                                    } else {
+                                        JOptionPane.showMessageDialog(null, "No extensions found.");
+                                    }
+                                }
+                            }
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                }
+            });
             newc.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -141,6 +191,7 @@ public class photoLibrary {
             c.add(newc);
             c.add(newb);
             c.add(addPhoto);
+            c.add(extensions);
             library.add(c, BorderLayout.NORTH);
             for (String path : photos) {
                 ImageIcon icon = new ImageIcon(path);
@@ -226,6 +277,13 @@ public class photoLibrary {
                 e.printStackTrace();
             }
         }
+    }
+    public ArrayList<String> getPhotos() {
+        return photos;
+    }
+    public void onStart(Function<ArrayList<String>, Integer> f) {
+        // extension entry point
+        f.apply(photos);
     }
 }
 
