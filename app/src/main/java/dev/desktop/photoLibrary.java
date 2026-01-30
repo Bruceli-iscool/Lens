@@ -194,10 +194,12 @@ public class photoLibrary {
             c.add(extensions);
             library.add(c, BorderLayout.NORTH);
             for (String path : photos) {
+                int r = 0;
                 ImageIcon icon = new ImageIcon(path);
                 Image scaled = icon.getImage()
                         .getScaledInstance(300, -1, Image.SCALE_SMOOTH);
                 JButton button = new JButton(new ImageIcon(scaled));
+                JLabel rating = new JLabel(Integer.toString(r));
                 button.setBorder(null);
                 button.setContentAreaFilled(false);
                 button.setFocusPainted(false);
@@ -237,6 +239,11 @@ public class photoLibrary {
                     }
                 });
                 panel.add(button);
+                rating.setBorder(null);
+                rating.setOpaque(false);
+                rating.setHorizontalAlignment(JLabel.CENTER);
+                // todo
+                panel.add(rating);
             }
             JPanel wrapper = new JPanel(new BorderLayout());
             wrapper.add(panel, BorderLayout.NORTH);
