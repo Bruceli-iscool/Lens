@@ -10,12 +10,23 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
-import java.util.function.Function;
-import java.net.URL;
-
-
+class Photo {
+    String path;
+    int rating;
+    Photo(String path, int rating) {
+        this.path = path;
+        this.rating = rating;
+    }
+}
+class core extends JFrame{
+    JFrame frame;
+    public core(String windowName) {
+        this.frame = new JFrame(windowName);
+        this.frame.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+    }
+}
 public class photoLibrary {
-    public ArrayList<String> photos;
+    public ArrayList<Photo> photos;
     String catalogPath = "";
 
     protected photoLibrary(boolean firstInCurrentSession) throws InterruptedException, IOException {
@@ -42,9 +53,9 @@ public class photoLibrary {
     protected void home() throws IOException {
         // asks to open or create a catalog.
         JFrame home = new JFrame("Lens Home");
+                home.setSize(700, 500);
         JButton newCatalog = new JButton("New Catalog");
         JButton openCatalog = new JButton("Open Catalog");
-        home.setSize(700, 500);
         home.setLocationRelativeTo(null);
         newCatalog.addActionListener(new ActionListener() {
             @Override
@@ -89,7 +100,7 @@ public class photoLibrary {
     protected void read(File file) throws FileNotFoundException {
         Scanner s = new Scanner(file);
         while (s.hasNextLine()) {
-            photos.add(s.nextLine());
+            photos.add(new Photo(s.nextLine(), -1));
         }
     }
 
@@ -105,53 +116,6 @@ public class photoLibrary {
             JToolBar c = new JToolBar();
             JButton newc = new JButton("New Catalog");
             JButton newb = new JButton("Open Catalog");
-            JButton extensions = new JButton("Execute Extension");
-            extensions.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    int result = JOptionPane.showConfirmDialog(null, "Extensions may cause harm to your computer.\nOnly execute trusted extensions, are you sure you want to proceed?", "Alert!", JOptionPane.YES_NO_OPTION);
-                    if (result == 0) {
-                        try {
-                            URL extensionsUrl = photoLibrary.class.getResource("/extensions/");
-                            if (extensionsUrl != null) {
-                                File extensionsDir = new File(extensionsUrl.toURI());
-                                File[] classFiles = extensionsDir.listFiles((dir, name) -> name.endsWith(".class"));
-                                if (classFiles != null) {
-                                    ClassLoader cl = Thread.currentThread().getContextClassLoader();
-                                    java.util.List<String> extensionNames = new java.util.ArrayList<>();
-                                    java.util.Map<String, Class<?>> extensionClasses = new java.util.HashMap<>();
-                                    for (File classFile : classFiles) {
-                                        String fileName = classFile.getName();
-                                        String className = "extensions." + fileName.substring(0, fileName.length() - 6);
-                                        try {
-                                            Class<?> cls = cl.loadClass(className);
-                                            if (LensExtension.class.isAssignableFrom(cls)) {
-                                                extensionNames.add(className);
-                                                extensionClasses.put(className, cls);
-                                            }
-                                        } catch (Exception ex) {
-                                            ex.printStackTrace();
-                                        }
-                                    }
-                                    if (!extensionNames.isEmpty()) {
-                                        Object selected = JOptionPane.showInputDialog(null, "Select an extension to execute:", "Alert", JOptionPane.QUESTION_MESSAGE, null, extensionNames.toArray(), extensionNames.get(0));
-                                        if (selected != null) {
-                                            String selectedClassName = (String) selected;
-                                            Class<?> cls = extensionClasses.get(selectedClassName);
-                                            LensExtension ext = (LensExtension) cls.getDeclaredConstructor().newInstance();
-                                            ext.run(photoLibrary.this);
-                                        }
-                                    } else {
-                                        JOptionPane.showMessageDialog(null, "No extensions found.");
-                                    }
-                                }
-                            }
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
-                    }
-                }
-            });
             newc.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -182,24 +146,33 @@ public class photoLibrary {
                     if (result == JFileChooser.APPROVE_OPTION) {
                         File selectedFile = f.getSelectedFile();
                         String s = selectedFile.getPath();
-                        photos.add(s);
+                        photos.add(new Photo(s, -1));
                         render();
+                        rewrite();
                     }
-                    rewrite();
+                }
+            });
+            JButton quitButton = new JButton("Quit");
+            quitButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    int choice = JOptionPane.showConfirmDialog(library,"Are you sure you want to quit Lens?", "Alert!",
+                    JOptionPane.YES_NO_OPTION);
+                    if (choice == JOptionPane.YES_OPTION) {
+                        System.exit(0);
+                    } 
                 }
             });
             c.add(newc);
             c.add(newb);
             c.add(addPhoto);
-            c.add(extensions);
+            c.add(quitButton);
             library.add(c, BorderLayout.NORTH);
-            for (String path : photos) {
-                int r = 0;
-                ImageIcon icon = new ImageIcon(path);
+            for (Photo p : photos) {
+                ImageIcon icon = new ImageIcon(p.path);
                 Image scaled = icon.getImage()
                         .getScaledInstance(300, -1, Image.SCALE_SMOOTH);
                 JButton button = new JButton(new ImageIcon(scaled));
-                JLabel rating = new JLabel(Integer.toString(r));
                 button.setBorder(null);
                 button.setContentAreaFilled(false);
                 button.setFocusPainted(false);
@@ -214,21 +187,23 @@ public class photoLibrary {
                         JToolBar viewImageToolbar = new JToolBar();
                         JButton deleteButton = new JButton("Remove");
                         viewImageToolbar.add(deleteButton);
-                        JFrame viewImage = new JFrame("Lens: " + path);
+                        JButton rateButton = new JButton("Modify Rating (Current: " + p.rating+")");
+                        JFrame viewImage = new JFrame("Lens: " + p.path);
                         deleteButton.addActionListener(new ActionListener() {
                             @Override
                             public void actionPerformed(ActionEvent e) {
                                 int result = JOptionPane.showConfirmDialog(null, "Remove Image?", "Alert!",
                                         JOptionPane.YES_NO_OPTION);
                                 if (result == 0) {
-                                    photos.remove(path);
+                                    photos.remove(p);
                                     render();
                                     rewrite();
                                     viewImage.dispose();
                                 }
                             }
                         });
-                        ImageIcon fullSizeImage = new ImageIcon(path);
+                        rateButton.addActionListener(null);
+                        ImageIcon fullSizeImage = new ImageIcon(p.path);
                         ImagePanel im = new ImagePanel(fullSizeImage.getImage());
                         viewImage.add(im);
                         viewImage.setSize(1200, 800);
@@ -239,11 +214,6 @@ public class photoLibrary {
                     }
                 });
                 panel.add(button);
-                rating.setBorder(null);
-                rating.setOpaque(false);
-                rating.setHorizontalAlignment(JLabel.CENTER);
-                // todo
-                panel.add(rating);
             }
             JPanel wrapper = new JPanel(new BorderLayout());
             wrapper.add(panel, BorderLayout.NORTH);
@@ -259,8 +229,9 @@ public class photoLibrary {
         // rewrite the catalog to reflect changes
         try {
             FileWriter p = new FileWriter(catalogPath, false);
-            for (String path : photos) {
-                p.write(path + "\n");
+            for (Photo g : photos) {
+                p.write(g.path + "\n");
+                p.write(g.rating);
             }
             p.close();
         } catch (IOException e) {
@@ -276,21 +247,17 @@ public class photoLibrary {
             try {
                 file.createNewFile();
                 catalogPath = file.getAbsolutePath();
-                rewrite();
                 // reset for new catalog
                 photos = new ArrayList<>();
+                rewrite();
                 render();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
-    public ArrayList<String> getPhotos() {
+    public ArrayList<Photo> getPhotos() {
         return photos;
-    }
-    public void onStart(Function<ArrayList<String>, Integer> f) {
-        // extension entry point
-        f.apply(photos);
     }
 }
 
