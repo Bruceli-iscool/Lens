@@ -40,7 +40,7 @@ public class photoLibrary {
         // splashScreen
         JFrame splash = new JFrame("Lens");
         splash.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        ImageIcon image = new ImageIcon(photoLibrary.class.getResource("/splashScreen2.png"));
+        ImageIcon image = new ImageIcon(photoLibrary.class.getResource("/splashScreen3.png"));
         splash.add(new JLabel(image));
         splash.pack();
         splash.setResizable(false);
@@ -100,7 +100,7 @@ public class photoLibrary {
     protected void read(File file) throws FileNotFoundException {
         Scanner s = new Scanner(file);
         while (s.hasNextLine()) {
-            photos.add(new Photo(s.nextLine(), -1));
+            photos.add(new Photo(s.nextLine(), Integer.parseInt(s.nextLine().trim())));
         }
     }
 
@@ -188,6 +188,7 @@ public class photoLibrary {
                         JButton deleteButton = new JButton("Remove");
                         viewImageToolbar.add(deleteButton);
                         JButton rateButton = new JButton("Modify Rating (Current: " + p.rating+")");
+                        viewImageToolbar.add(rateButton);
                         JFrame viewImage = new JFrame("Lens: " + p.path);
                         deleteButton.addActionListener(new ActionListener() {
                             @Override
@@ -202,7 +203,27 @@ public class photoLibrary {
                                 }
                             }
                         });
-                        rateButton.addActionListener(null);
+                        rateButton.addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                    String input = JOptionPane.showInputDialog(viewImage,"Enter a new Rating!","Modify Rating",JOptionPane.QUESTION_MESSAGE);
+                                if (input == null) {
+                                    JOptionPane.showMessageDialog(viewImage,"No Input! No changes were made.","Alert!",JOptionPane.ERROR_MESSAGE);
+                                }
+                                try {
+                                    int value = Integer.parseInt(input.trim());
+                                    if (value < 0 || value > 5) {
+                                        JOptionPane.showMessageDialog(viewImage,"Invalid Input!","Alert!",JOptionPane.ERROR_MESSAGE);
+                                    } else {
+                                        p.rating=value;
+                                        render();
+                                        rewrite();
+                                    }
+                                } catch (NumberFormatException g) {
+                                    JOptionPane.showMessageDialog(viewImage,"Invalid Input Format!","Alert!",JOptionPane.ERROR_MESSAGE);
+                                }
+                            }
+                        });
                         ImageIcon fullSizeImage = new ImageIcon(p.path);
                         ImagePanel im = new ImagePanel(fullSizeImage.getImage());
                         viewImage.add(im);
@@ -222,7 +243,7 @@ public class photoLibrary {
             scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
             library.add(scrollPane);
             library.setVisible(true);
-            // todo add star ratings 
+            // work on filtering in the main library based on rating
         });
     }
     private void rewrite() {
@@ -231,7 +252,7 @@ public class photoLibrary {
             FileWriter p = new FileWriter(catalogPath, false);
             for (Photo g : photos) {
                 p.write(g.path + "\n");
-                p.write(g.rating);
+                p.write(Integer.toString(g.rating));
             }
             p.close();
         } catch (IOException e) {
