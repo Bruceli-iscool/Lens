@@ -27,7 +27,9 @@ class core extends JFrame{
 }
 public class photoLibrary {
     public ArrayList<Photo> photos;
+    ArrayList<Photo> displayPhotos = new ArrayList<>();
     String catalogPath = "";
+    int filterRating = -1;
 
     protected photoLibrary(boolean firstInCurrentSession) throws InterruptedException, IOException {
         if (firstInCurrentSession) {
@@ -103,10 +105,27 @@ public class photoLibrary {
             photos.add(new Photo(s.nextLine(), Integer.parseInt(s.nextLine().trim())));
         }
     }
-
+    protected boolean validate(String input, JFrame parent) {
+        if (input == null) {
+            JOptionPane.showMessageDialog(parent,"No Input! No changes were made.","Alert!",JOptionPane.ERROR_MESSAGE);
+        }
+        try {
+            int value = Integer.parseInt(input.trim());
+            if (value < 0 || value > 5) {
+                JOptionPane.showMessageDialog(parent,"Invalid Input!","Alert!",JOptionPane.ERROR_MESSAGE);
+            }
+            else {
+                return true;
+            }
+        } catch (NumberFormatException g) {
+            JOptionPane.showMessageDialog(parent,"Invalid Input Format!","Alert!",JOptionPane.ERROR_MESSAGE);
+        }
+        return false;
+    }
     protected void render() {
         SwingUtilities.invokeLater(() -> {
-            core library = new core("Lens v2: " + catalogPath);
+            displayPhotos = new ArrayList<>();
+            JFrame library = new JFrame("Lens v2: " + catalogPath);
             library.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             library.setSize(1600, 900);
             library.setLocationRelativeTo(null);
@@ -152,6 +171,27 @@ public class photoLibrary {
                     }
                 }
             });
+            JButton filter = new JButton("Filter Photos");
+            filter.addActionListener(new ActionListener() {
+                @Override 
+                public void actionPerformed(ActionEvent e) {
+                    String input = JOptionPane.showInputDialog(library,"Enter rating to filter by: ","Filter",JOptionPane.QUESTION_MESSAGE);
+                    if (validate(input, library)) {
+                        filterRating = Integer.parseInt(input);
+                        displayPhotos = new ArrayList<>();
+                        render();
+                    }
+                }
+            });
+            JButton clearFilter = new JButton("Clear Filter");
+            clearFilter.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    filterRating = -1;
+                    displayPhotos = new ArrayList<>();
+                    render();
+                }
+            });
             JButton quitButton = new JButton("Quit");
             quitButton.addActionListener(new ActionListener() {
                 @Override
@@ -166,9 +206,18 @@ public class photoLibrary {
             c.add(newc);
             c.add(newb);
             c.add(addPhoto);
+            c.add(filter);
+            c.add(clearFilter);
             c.add(quitButton);
+            for (Photo l:photos) {
+                if (filterRating == -1) {
+                    displayPhotos.add(l);
+                } else if (l.rating == filterRating) {
+                    displayPhotos.add(l);
+                } 
+            }
             library.add(c, BorderLayout.NORTH);
-            for (Photo p : photos) {
+            for (Photo p : displayPhotos) {
                 ImageIcon icon = new ImageIcon(p.path);
                 Image scaled = icon.getImage()
                         .getScaledInstance(300, -1, Image.SCALE_SMOOTH);
@@ -206,24 +255,14 @@ public class photoLibrary {
                         rateButton.addActionListener(new ActionListener() {
                             @Override
                             public void actionPerformed(ActionEvent e) {
-                                    String input = JOptionPane.showInputDialog(viewImage,"Enter a new Rating!","Modify Rating",JOptionPane.QUESTION_MESSAGE);
-                                if (input == null) {
-                                    JOptionPane.showMessageDialog(viewImage,"No Input! No changes were made.","Alert!",JOptionPane.ERROR_MESSAGE);
-                                }
-                                try {
-                                    int value = Integer.parseInt(input.trim());
-                                    if (value < 0 || value > 5) {
-                                        JOptionPane.showMessageDialog(viewImage,"Invalid Input!","Alert!",JOptionPane.ERROR_MESSAGE);
-                                    } else {
-                                        p.rating=value;
-                                        render();
-                                        rewrite();
+                                String input = JOptionPane.showInputDialog(viewImage,"Enter a new Rating!","Modify Rating",JOptionPane.QUESTION_MESSAGE);
+                                if (validate(input, library)) {
+                                    p.rating = Integer.parseInt(input.trim());
+                                    rateButton.setText("Modify Rating (Current: " + p.rating+")");
+                                    rewrite();
                                     }
-                                } catch (NumberFormatException g) {
-                                    JOptionPane.showMessageDialog(viewImage,"Invalid Input Format!","Alert!",JOptionPane.ERROR_MESSAGE);
                                 }
-                            }
-                        });
+                            });
                         ImageIcon fullSizeImage = new ImageIcon(p.path);
                         ImagePanel im = new ImagePanel(fullSizeImage.getImage());
                         viewImage.add(im);
