@@ -157,15 +157,18 @@ public class photoLibrary {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     JFileChooser f = new JFileChooser();
+                    f.setMultiSelectionEnabled(true);
                     f.setDialogTitle("Select an Image to open.");
                     FileNameExtensionFilter filter = new FileNameExtensionFilter("Image files (*.png, *.jpeg, *.jpg)",
                             "png", "jpeg", "jpg");
                     f.setFileFilter(filter);
                     int result = f.showOpenDialog(library);
                     if (result == JFileChooser.APPROVE_OPTION) {
-                        File selectedFile = f.getSelectedFile();
-                        String s = selectedFile.getPath();
-                        photos.add(new Photo(s, -1));
+                        File[] selectedFile = f.getSelectedFiles();
+                        for (File m:selectedFile) {
+                            String path = m.getAbsolutePath();
+                            photos.add(new Photo(path, -1));
+                        }
                         render();
                         rewrite();
                     }
